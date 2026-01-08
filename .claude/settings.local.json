@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(exit 0)",
+      "Skill(sc:troubleshoot)",
+      "Skill(sc:troubleshoot:*)",
+      "Bash(./gradlew tasks:*)",
+      "Bash(gradlew.bat tasks:*)",
+      "Bash(curl:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(cmd /c gradlew.bat assembleDebug)"
+    ]
+  },
+  "allowedCommands": {
+    "bash": true,
+    "read": true,
+    "write": true,
+    "edit": true
+  },
+  "roles": {
+    "backend": {
+      "name": "Backend Developer",
+      "workingDirectory": "backend",
+      "onSessionStart": {
+        "readFiles": [
+          "../CLAUDE.md",
+          "../.claude/ai-context/PROJECT-OVERVIEW.md",
+          "../.claude/ai-context/TECH-STACK.md",
+          "../.claude/ai-context/domain-overview.md",
+          "../.claude/ai-context/data-model.md",
+          "../.claude/ai-context/api-spec.json",
+          "../.claude/ai-context/external-integration.md"
+        ],
+        "message": "Backend 세션 시작!"
+      }
+    },
+    "frontend": {
+      "name": "Android Developer",
+      "workingDirectory": "mobile",
+      "onSessionStart": {
+        "readFiles": [
+          "../CLAUDE.md",
+          "../.claude/ai-context/PROJECT-OVERVIEW.md",
+          "../.claude/ai-context/api-spec.json"
+        ],
+        "message": "Android 세션 시작!"
+      }
+    }
+  },
+  "defaultRole": "backend"
+}
