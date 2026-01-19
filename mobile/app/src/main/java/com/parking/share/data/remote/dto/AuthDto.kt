@@ -44,3 +44,27 @@ data class UserResponse(
 
     val status: String
 )
+
+// 본인인증 후 회원가입 요청
+@Serializable
+data class RegisterWithCertRequest(
+    val email: String,
+    val password: String,
+    @SerialName("imp_uid")
+    val impUid: String
+)
+
+// 본인인증 검증 요청
+@Serializable
+data class CertificationVerifyRequest(
+    @SerialName("imp_uid")
+    val impUid: String
+)
+
+// 본인인증 검증 응답
+@Serializable
+data class CertificationVerifyResponse(
+    val name: String,
+    val phone: String,
+    val certified: Boolean
+)

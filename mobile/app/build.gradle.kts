@@ -24,6 +24,10 @@ android {
 
         // Backend API URL
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/v1/\"")
+
+        // Portone 설정
+        buildConfigField("String", "PORTONE_STORE_ID", "\"store-d25fbbf2-dc25-4cbb-8ab9-1254e72babb8\"")
+        buildConfigField("String", "PORTONE_CHANNEL_KEY", "\"channel-key-b388d8f9-cfa1-47aa-b8a5-a9ed9fa6f45a\"")
     }
 
     buildTypes {
@@ -109,6 +113,9 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // WebView (본인인증용 - Portone JS SDK 사용)
+    implementation("androidx.webkit:webkit:1.9.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

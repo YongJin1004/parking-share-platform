@@ -2,15 +2,29 @@ package com.parking.share.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.parking.share.presentation.auth.CertificationScreen
 import com.parking.share.presentation.auth.LoginScreen
 import com.parking.share.presentation.auth.RegisterScreen
+import com.parking.share.presentation.auth.RegisterWithCertScreen
 import com.parking.share.presentation.home.HomeScreen
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
-    object Register : Screen("register")
+    object Certification : Screen("certification")
+    object RegisterWithCert : Screen("register_with_cert/{impUid}/{name}/{phone}") {
+        fun createRoute(impUid: String, name: String, phone: String): String {
+            val encodedName = URLEncoder.encode(name, "UTF-8")
+            val encodedPhone = URLEncoder.encode(phone, "UTF-8")
+            return "register_with_cert/$impUid/$encodedName/$encodedPhone"
+        }
+    }
+    object Register : Screen("register")  // 기존 회원가입 (본인인증 없이)
     object Home : Screen("home")
 }
 
@@ -31,11 +45,55 @@ fun NavGraph(
                     }
                 },
                 onNavigateToRegister = {
-                    navController.navigate(Screen.Register.route)
+                    // 본인인증 화면으로 이동
+                    navController.navigate(Screen.Certification.route)
                 }
             )
         }
 
+        // 본인인증 화면
+        composable(Screen.Certification.route) {
+            CertificationScreen(
+                onCertificationSuccess = { impUid, name, phone ->
+                    navController.navigate(Screen.RegisterWithCert.createRoute(impUid, name, phone)) {
+                        popUpTo(Screen.Certification.route) { inclusive = true }
+                    }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 본인인증 후 회원가입 화면
+        composable(
+            route = Screen.RegisterWithCert.route,
+            arguments = listOf(
+                navArgument("impUid") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType },
+                navArgument("phone") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val impUid = backStackEntry.arguments?.getString("impUid") ?: ""
+            val name = URLDecoder.decode(backStackEntry.arguments?.getString("name") ?: "", "UTF-8")
+            val phone = URLDecoder.decode(backStackEntry.arguments?.getString("phone") ?: "", "UTF-8")
+
+            RegisterWithCertScreen(
+                impUid = impUid,
+                certifiedName = name,
+                certifiedPhone = phone,
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 기존 회원가입 (본인인증 없이) - 개발용으로 유지
         composable(Screen.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = {
