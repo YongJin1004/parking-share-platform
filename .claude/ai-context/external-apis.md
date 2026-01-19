@@ -72,54 +72,137 @@ params = {
 
 ---
 
-## Portone (구 아임포트)
+## Portone V2 (본인인증)
 
 ### 목적
-1. **본인인증** (KG 이니시스 - 테스트 모드)
-2. **결제** (카카오페이 or 토스페이먼츠 - 테스트 모드)
-3. **결제 취소/환불**
+1. **본인인증** (KG 이니시스 통합인증 - 테스트 모드) ✅ 구현 완료
+2. **결제** (카카오페이 or 토스페이먼츠 - 추후 구현)
+3. **결제 취소/환불** (추후 구현)
 
-### 설정
-```python
-PORTONE_API_KEY = os.getenv("PORTONE_API_KEY")
-PORTONE_API_SECRET = os.getenv("PORTONE_API_SECRET")
-PORTONE_MODE = "test"  # 테스트 모드 고정
+### 환경 변수 (.env)
+```bash
+PORTONE_STORE_ID=store-xxxxx      # 상점 ID
+PORTONE_CHANNEL_KEY=channel-key-xxxxx  # 채널 키 (KG 이니시스)
+PORTONE_API_SECRET=xxxxx          # V2 API Secret
 ```
 
-### 본인인증 (KG 이니시스)
+### 본인인증 플로우 (구현 완료)
 
-**목적**: 전화번호 인증 (회원가입 시)
+```
+[Android App]                    [Backend]                    [Portone V2 API]
+     |                              |                              |
+     |-- WebView에서 JS SDK 호출 -->|                              |
+     |   PortOne.requestIdentityVerification()                     |
+     |                              |                              |
+     |<-- redirectUrl로 리다이렉트 --|                              |
+     |   (identityVerificationId 포함)                             |
+     |                              |                              |
+     |-- POST /verify-certification -->|                           |
+     |   (identityVerificationId)   |                              |
+     |                              |-- POST /login/api-secret --->|
+     |                              |<-- accessToken --------------|
+     |                              |                              |
+     |                              |-- GET /identity-verifications/{id} -->|
+     |                              |<-- 인증 정보 (이름, 전화번호) --|
+     |                              |                              |
+     |<-- 인증 결과 (name, phone) ---|                              |
+     |                              |                              |
+     |-- POST /register-with-cert -->|                             |
+     |   (email, password, impUid)  |                              |
+     |<-- 회원가입 완료 -------------|                              |
+```
 
-**프론트엔드 연동**:
-```javascript
-IMP.init('YOUR_IMP_CODE'); // Portone 가맹점 식별코드
+### Android WebView 연동 (JS SDK v2)
 
-IMP.certification({
-    pg: 'inicis_unified',  // KG 이니시스
-    merchant_uid: `cert_${new Date().getTime()}`
-}, function(response) {
-    if (response.success) {
-        // 인증 성공 → Backend로 imp_uid 전송
-        verifyIdentity(response.imp_uid);
+```kotlin
+// CertificationScreen.kt - WebView에서 Portone V2 JS SDK 사용
+val identityVerificationId = "iv_${System.currentTimeMillis()}"
+val redirectUrl = "https://parkingshare.app/identity-verification-result"
+
+val htmlContent = """
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+    <script>
+        PortOne.requestIdentityVerification({
+            storeId: "$storeId",
+            channelKey: "$channelKey",
+            identityVerificationId: "$identityVerificationId",
+            redirectUrl: "$redirectUrl"
+        });
+    </script>
+""".trimIndent()
+
+// WebViewClient에서 redirectUrl 감지
+webViewClient = object : WebViewClient() {
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        val url = request?.url?.toString() ?: return false
+        if (url.startsWith(redirectUrl)) {
+            val uri = Uri.parse(url)
+            val resultId = uri.getQueryParameter("identityVerificationId")
+            // Backend로 resultId 전송하여 검증
+        }
+        return false
     }
-});
+}
 ```
 
-**Backend 검증**:
+### Backend API 구현
+
+**1. Access Token 발급**
 ```python
-def verify_phone_number(imp_uid: str):
-    url = f"https://api.iamport.kr/certifications/{imp_uid}"
+# backend/app/portone.py
+async def get_portone_access_token() -> str:
+    url = "https://api.portone.io/login/api-secret"
+    data = {"apiSecret": PORTONE_API_SECRET}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=data)
+        return response.json().get("accessToken")
+```
+
+**2. 본인인증 정보 조회**
+```python
+async def get_certification_info(identity_verification_id: str) -> dict:
+    access_token = await get_portone_access_token()
+
+    url = f"https://api.portone.io/identity-verifications/{identity_verification_id}?storeId={PORTONE_STORE_ID}"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    response = requests.get(url, headers=headers)
-    cert_data = response.json()['response']
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        result = response.json()
 
-    return {
-        "name": cert_data['name'],
-        "phone": cert_data['phone'],
-        "verified": True
-    }
+        if result.get("status") != "VERIFIED":
+            raise HTTPException(status_code=400, detail="본인인증 미완료")
+
+        verified = result.get("verifiedCustomer", {})
+        return {
+            "name": verified.get("name"),
+            "phone": verified.get("phoneNumber"),
+            "certified": True
+        }
 ```
+
+**3. API 엔드포인트**
+```python
+# POST /api/v1/auth/verify-certification
+# - 본인인증 검증 후 이름/전화번호 반환
+
+# POST /api/v1/auth/register-with-cert
+# - 본인인증 ID + 이메일/비밀번호로 회원가입
+# - phone_verified = True로 자동 설정
+```
+
+### 에러 처리
+| 상황 | 원인 | 해결 |
+|------|------|------|
+| 401 Unauthorized | API Secret 인증 실패 | Bearer 토큰 방식 사용 |
+| "redirectUrl 필수" | 모바일에서 리다이렉션 방식 필요 | redirectUrl 파라미터 추가 |
+| "등록된 pg 설정 정보를 찾을 수 없습니다" | V1 SDK 사용 | V2 SDK로 변경 |
+
+### 주의사항
+- **V1 SDK (cdn.iamport.kr)가 아닌 V2 SDK (cdn.portone.io) 사용**
+- 모바일에서는 리다이렉션 방식만 지원 (콜백 방식 불가)
+- Access Token은 API 호출마다 새로 발급 (캐싱 추후 구현)
 
 ### 결제 (카카오페이 or 토스페이먼츠)
 

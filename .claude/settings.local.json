@@ -11,7 +11,12 @@
       "Bash(curl:*)",
       "Bash(./gradlew assembleDebug:*)",
       "Bash(gradlew.bat assembleDebug:*)",
-      "Bash(cmd /c gradlew.bat assembleDebug)"
+      "Bash(cmd /c gradlew.bat assembleDebug)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker exec:*)",
+      "Bash(ipconfig:*)",
+      "Bash(findstr:*)",
+      "Bash(./gradlew.bat assembleDebug:*)"
     ]
   },
   "allowedCommands": {
@@ -27,24 +32,22 @@
       "onSessionStart": {
         "readFiles": [
           "../CLAUDE.md",
-          "../.claude/ai-context/PROJECT-OVERVIEW.md",
-          "../.claude/ai-context/TECH-STACK.md",
           "../.claude/ai-context/domain-overview.md",
           "../.claude/ai-context/data-model.md",
           "../.claude/ai-context/api-spec.json",
-          "../.claude/ai-context/external-integration.md"
+          "../.claude/ai-context/external-apis.md"
         ],
         "message": "Backend 세션 시작!"
       }
     },
-    "frontend": {
+    "mobile": {
       "name": "Android Developer",
       "workingDirectory": "mobile",
       "onSessionStart": {
         "readFiles": [
           "../CLAUDE.md",
-          "../.claude/ai-context/PROJECT-OVERVIEW.md",
-          "../.claude/ai-context/api-spec.json"
+          "../.claude/ai-context/api-spec.json",
+          "../.claude/ai-context/mobile-auth-implementation.md"
         ],
         "message": "Android 세션 시작!"
       }

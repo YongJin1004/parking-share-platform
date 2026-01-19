@@ -297,7 +297,128 @@ val loggingInterceptor = HttpLoggingInterceptor().apply {
 
 ---
 
-## 10. 향후 작업
+## 10. 본인인증 (Portone V2) ✅ 구현 완료
+
+### 개요
+회원가입 전 본인인증 필수 (KG 이니시스 통합인증)
+
+### 플로우
+```
+로그인 화면 → "회원가입" 클릭 → 본인인증 화면 → 인증 완료 → 회원가입 화면 (이름/전화번호 자동입력)
+```
+
+### 화면 구조
+```
+presentation/auth/
+├── CertificationScreen.kt       # WebView 본인인증
+├── CertificationViewModel.kt    # 인증 검증 로직
+├── RegisterWithCertScreen.kt    # 본인인증 후 회원가입
+└── RegisterWithCertViewModel.kt # 회원가입 API 호출
+```
+
+### 네비게이션 (NavGraph.kt)
+```kotlin
+sealed class Screen(val route: String) {
+    object Login : Screen("login")
+    object Certification : Screen("certification")
+    object RegisterWithCert : Screen("register_with_cert/{impUid}/{name}/{phone}")
+    object Home : Screen("home")
+}
+```
+
+### WebView 본인인증 (CertificationScreen.kt)
+
+**Portone V2 JS SDK 사용**:
+```kotlin
+val htmlContent = """
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+    <script>
+        PortOne.requestIdentityVerification({
+            storeId: "$storeId",
+            channelKey: "$channelKey",
+            identityVerificationId: "$identityVerificationId",
+            redirectUrl: "$redirectUrl"  // 필수!
+        });
+    </script>
+""".trimIndent()
+```
+
+**redirectUrl 감지**:
+```kotlin
+webViewClient = object : WebViewClient() {
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        val url = request?.url?.toString() ?: return false
+        if (url.startsWith(redirectUrl)) {
+            val resultId = Uri.parse(url).getQueryParameter("identityVerificationId")
+            // Backend로 검증 요청
+            viewModel.verifyCertification(resultId!!)
+            return true
+        }
+        return false
+    }
+}
+```
+
+### API 호출
+
+**1. 본인인증 검증**:
+```kotlin
+// CertificationViewModel.kt
+suspend fun verifyCertification(identityVerificationId: String) {
+    val response = authApi.verifyCertification(
+        CertificationVerifyRequest(impUid = identityVerificationId)
+    )
+    // response.name, response.phone 저장
+}
+```
+
+**2. 회원가입**:
+```kotlin
+// RegisterWithCertViewModel.kt
+suspend fun register(email: String, password: String, impUid: String) {
+    authApi.registerWithCert(
+        RegisterWithCertRequest(email, password, impUid)
+    )
+}
+```
+
+### DTO
+```kotlin
+// AuthDto.kt
+@Serializable
+data class CertificationVerifyRequest(
+    @SerialName("imp_uid") val impUid: String
+)
+
+@Serializable
+data class CertificationVerifyResponse(
+    val name: String,
+    val phone: String,
+    val certified: Boolean
+)
+
+@Serializable
+data class RegisterWithCertRequest(
+    val email: String,
+    val password: String,
+    @SerialName("imp_uid") val impUid: String
+)
+```
+
+### BuildConfig 설정 (app/build.gradle.kts)
+```kotlin
+buildConfigField("String", "PORTONE_STORE_ID", "\"store-xxxxx\"")
+buildConfigField("String", "PORTONE_CHANNEL_KEY", "\"channel-key-xxxxx\"")
+```
+
+### 주의사항
+- **V2 SDK 사용** (`cdn.portone.io`, NOT `cdn.iamport.kr`)
+- **redirectUrl 필수** (모바일 WebView는 콜백 방식 불가)
+- WebView 설정: `javaScriptEnabled = true`, `domStorageEnabled = true`
+
+---
+
+## 11. 향후 작업
 
 ### 필요 기능
 - [ ] 토큰 자동 갱신 (Refresh Token)
