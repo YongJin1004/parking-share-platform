@@ -12,6 +12,25 @@ class UserRegister(BaseModel):
     phone: str = Field(..., pattern=r"^010-\d{4}-\d{4}$")
 
 
+# 본인인증 후 회원가입 (이름/전화번호는 인증 정보에서 자동 입력)
+class UserRegisterWithCert(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    imp_uid: str  # Portone 본인인증 UID (필수)
+
+
+# 본인인증 검증 요청
+class CertificationVerifyRequest(BaseModel):
+    imp_uid: str
+
+
+# 본인인증 검증 응답
+class CertificationVerifyResponse(BaseModel):
+    name: str
+    phone: str
+    certified: bool
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
