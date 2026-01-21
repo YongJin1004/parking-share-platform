@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import shutil
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -28,14 +31,25 @@ def create_parking_space(
 ):
     """주차 공간 등록 (Host)"""
     # 새 주차 공간 생성
+    schedule = [item.model_dump() for item in space_data.available_schedule] if space_data.available_schedule else None
+    title = space_data.title if space_data.title else space_data.address[:50]
+
+    if space_data.hourly_rate is not None:
+        hourly_rate = space_data.hourly_rate
+    elif space_data.available_schedule:
+        hourly_rate = min(item.hourly_rate for item in space_data.available_schedule)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="hourly_rate 또는 운영 스케줄이 필요합니다.")
+
     new_space = ParkingSpace(
         host_id=current_user.id,
-        title=space_data.title,
+        title=title,
         address=space_data.address,
-        hourly_rate=space_data.hourly_rate,
+        hourly_rate=hourly_rate,
         description=space_data.description,
-        is_available=space_data.is_available
-        # latitude, longitude는 Kakao API 연동 후 추가
+        is_available=space_data.is_available,
+        available_schedule=schedule,
+        allowed_vehicle_types=space_data.allowed_vehicle_types
     )
 
     db.add(new_space)
@@ -157,3 +171,35 @@ def search_parking_spaces(
 
     spaces = query.all()
     return spaces
+
+
+@router.post("/{space_id}/images", response_model=ParkingSpaceResponse)
+def upload_parking_space_images(
+    space_id: int,
+    images: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """주차 공간 이미지 업로드"""
+    space = db.query(ParkingSpace).filter(ParkingSpace.id == space_id).first()
+    if not space:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parking space not found")
+    if space.host_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    upload_dir = f"uploads/parking_spaces/{space_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    saved_paths = list(space.images or [])
+    for image in images:
+        ext = os.path.splitext(image.filename)[1] if image.filename else ".jpg"
+        filename = f"{uuid.uuid4().hex}{ext}"
+        file_path = f"{upload_dir}/{filename}"
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(image.file, f)
+        saved_paths.append(f"/{file_path}")
+
+    space.images = saved_paths
+    db.commit()
+    db.refresh(space)
+    return space

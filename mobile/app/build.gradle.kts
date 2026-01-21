@@ -28,6 +28,9 @@ android {
         // Portone 설정
         buildConfigField("String", "PORTONE_STORE_ID", "\"store-d25fbbf2-dc25-4cbb-8ab9-1254e72babb8\"")
         buildConfigField("String", "PORTONE_CHANNEL_KEY", "\"channel-key-b388d8f9-cfa1-47aa-b8a5-a9ed9fa6f45a\"")
+
+        // 카카오맵 설정
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"055d8c32720e988379b3b6da46d8aa47\"")
     }
 
     buildTypes {
@@ -116,6 +119,9 @@ dependencies {
 
     // WebView (본인인증용 - Portone JS SDK 사용)
     implementation("androidx.webkit:webkit:1.9.0")
+
+    // 카카오맵 SDK
+    implementation("com.kakao.maps.open:android:2.9.5")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

@@ -11,6 +11,8 @@ import com.parking.share.presentation.auth.LoginScreen
 import com.parking.share.presentation.auth.RegisterScreen
 import com.parking.share.presentation.auth.RegisterWithCertScreen
 import com.parking.share.presentation.home.HomeScreen
+import com.parking.share.presentation.host.AddParkingSpaceScreen
+import com.parking.share.presentation.host.HostScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -26,6 +28,8 @@ sealed class Screen(val route: String) {
     }
     object Register : Screen("register")  // 기존 회원가입 (본인인증 없이)
     object Home : Screen("home")
+    object Host : Screen("host")
+    object AddParkingSpace : Screen("add_parking_space")
 }
 
 @Composable
@@ -106,7 +110,41 @@ fun NavGraph(
         }
 
         composable(Screen.Home.route) {
-            HomeScreen()
+            HomeScreen(
+                onNavigateToHost = {
+                    navController.navigate(Screen.Host.route)
+                },
+                onNavigateToGuest = {
+                    // TODO: Guest 화면으로 이동
+                },
+                onNavigateToMyPage = {
+                    // TODO: 마이페이지로 이동
+                }
+            )
+        }
+
+        // Host 화면 - 내 주차 공간 목록
+        composable(Screen.Host.route) {
+            HostScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToAddParkingSpace = {
+                    navController.navigate(Screen.AddParkingSpace.route)
+                }
+            )
+        }
+
+        // 주차 공간 등록 화면
+        composable(Screen.AddParkingSpace.route) {
+            AddParkingSpaceScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSuccess = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

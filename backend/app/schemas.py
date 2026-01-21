@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -92,12 +92,21 @@ class VehicleResponse(BaseModel):
 
 
 # ParkingSpace Schemas
-class ParkingSpaceCreate(BaseModel):
-    title: str = Field(..., min_length=2, max_length=100)
-    address: str = Field(..., min_length=5, max_length=255)
+class ScheduleItem(BaseModel):
+    date: str        # "2026-05-20" (specific date)
+    start_time: str  # "09:00"
+    end_time: str    # "20:00"
     hourly_rate: int = Field(..., gt=0)
+
+
+class ParkingSpaceCreate(BaseModel):
+    title: Optional[str] = Field(None, max_length=100)
+    address: str = Field(..., min_length=5, max_length=255)
+    hourly_rate: Optional[int] = Field(None, gt=0)
     description: Optional[str] = Field(None, max_length=500)
     is_available: bool = True
+    available_schedule: Optional[List[ScheduleItem]] = None
+    allowed_vehicle_types: Optional[List[str]] = None
 
 
 class ParkingSpaceUpdate(BaseModel):
@@ -106,6 +115,8 @@ class ParkingSpaceUpdate(BaseModel):
     hourly_rate: Optional[int] = Field(None, gt=0)
     description: Optional[str] = Field(None, max_length=500)
     is_available: Optional[bool] = None
+    available_schedule: Optional[List[ScheduleItem]] = None
+    allowed_vehicle_types: Optional[List[str]] = None
 
 
 class ParkingSpaceResponse(BaseModel):
@@ -118,6 +129,9 @@ class ParkingSpaceResponse(BaseModel):
     hourly_rate: int
     description: Optional[str]
     is_available: bool
+    available_schedule: Optional[List[ScheduleItem]] = None
+    allowed_vehicle_types: Optional[List[str]] = None
+    images: Optional[List[str]] = None
     created_at: datetime
     updated_at: datetime
 

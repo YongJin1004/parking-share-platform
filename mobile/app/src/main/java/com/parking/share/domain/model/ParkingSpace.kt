@@ -1,5 +1,11 @@
 package com.parking.share.domain.model
 
+data class ScheduleItem(
+    val day: String,
+    val startTime: String,
+    val endTime: String
+)
+
 data class ParkingSpace(
     val id: Int,
     val hostId: Int,
@@ -9,5 +15,6 @@ data class ParkingSpace(
     val longitude: String?,
     val hourlyRate: Int,
     val description: String?,
-    val isAvailable: Boolean
+    val isAvailable: Boolean,
+    val availableSchedule: List<ScheduleItem>?
 )

@@ -325,36 +325,68 @@ Portone → Backend 자동 알림
 
 ---
 
-## Daum 우편번호 API + Kakao Maps
+## Kakao 우편번호 서비스 (구현 완료 ✅)
 
 ### 목적
-- **Host가 주차 공간 등록 시 주소 입력 및 위도/경도 추출**
-- 지도에 마커 표시
+- **Host가 주차 공간 등록 시 주소 검색**
+- 선택한 주소를 Kakao Local API로 좌표 변환 (미래)
 
-### 워크플로우
-1. **Daum 우편번호 서비스**로 주소 검색
-2. 선택한 주소를 **Kakao Local API**로 위도/경도 변환
-3. 위도/경도를 DB에 저장
-4. 지도에 마커 표시
+### 주의사항 (트러블슈팅 경험)
+- ~~Daum~~ → **Kakao**로 마이그레이션됨 (CDN, 네임스페이스 모두 변경)
+- CDN: `t1.daumcdn.net` ❌ → `t1.kakaocdn.net` ✅
+- 네임스페이스: `daum.Postcode` ❌ → `kakao.Postcode` ✅
+- Android WebView에서 `file://` 프로토콜 사용 불가 → `loadDataWithBaseURL` 필수
+- Compose `Dialog` 내부에서 `fillMaxHeight()` 동작 안 함 → `Box` 오버레이로 대체
 
-### Daum 우편번호 서비스 (프론트엔드)
+### Android WebView 구현 (구현 완료)
 
-**CDN**:
-```html
-<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+**핵심 포인트**:
+```kotlin
+// loadDataWithBaseURL 필수: baseUrl을 kakao 도메인으로 설정해야 protocol-relative URL(//) 해석 가능
+webView.loadDataWithBaseURL(
+    "https://postcode.map.kakao.com",
+    POSTCODE_HTML,
+    "text/html",
+    "utf-8",
+    null
+)
+
+// CSS: height:100% 대신 position:fixed 사용 (Quirks Mode 대응)
+// #wrap { position:fixed; top:0; left:0; right:0; bottom:0; }
+
+// JavascriptInterface: 익명 객체 아닌 named class 필수 (reflection 안정성)
+private class AddressBridge(private val callback: (String) -> Unit) {
+    @JavascriptInterface
+    fun onAddressSelected(address: String) { ... }
+}
 ```
 
-**예시**:
-```javascript
-new daum.Postcode({
-    oncomplete: function(data) {
-        // data.address: "서울 강남구 테헤란로 152"
-        // Backend로 전송 → Kakao API로 좌표 변환
-        sendToBackend({
-            address: data.address
-        });
+**HTML 템플릿**:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{overflow:hidden;}
+#wrap{position:fixed;top:0;left:0;right:0;bottom:0;}
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+new kakao.Postcode({
+    width:'100%', height:'100%',
+    oncomplete:function(data){
+        AndroidBridge.onAddressSelected(data.roadAddress||data.address);
     }
-}).open();
+}).embed(document.getElementById('wrap'));
+</script>
+</body>
+</html>
 ```
 
 ### Backend에서 좌표 변환 (Kakao Local API)

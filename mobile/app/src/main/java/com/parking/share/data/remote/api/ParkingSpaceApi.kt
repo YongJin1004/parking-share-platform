@@ -2,6 +2,7 @@ package com.parking.share.data.remote.api
 
 import com.parking.share.data.remote.dto.ParkingSpaceCreateRequest
 import com.parking.share.data.remote.dto.ParkingSpaceResponse
+import okhttp3.MultipartBody
 import retrofit2.http.*
 
 interface ParkingSpaceApi {
@@ -10,6 +11,13 @@ interface ParkingSpaceApi {
 
     @POST("parking-spaces")
     suspend fun createParkingSpace(@Body request: ParkingSpaceCreateRequest): ParkingSpaceResponse
+
+    @Multipart
+    @POST("parking-spaces/{id}/images")
+    suspend fun uploadImages(
+        @Path("id") id: Int,
+        @Part images: List<MultipartBody.Part>
+    ): ParkingSpaceResponse
 
     @GET("parking-spaces/search")
     suspend fun searchParkingSpaces(

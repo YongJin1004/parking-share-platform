@@ -58,34 +58,42 @@ Reservation (1) ---- (1) Payment
 ## ParkingSpace (주차 공간)
 - **등록자**: User (Host 역할)
 - **용도**: Guest가 검색 및 예약
-- **상태**: 구현 완료 (최소 버전)
+- **상태**: 구현 완료
 
 ### 필드
 | 필드 | 타입 | 설명 | 상태 |
 |------|------|------|------|
 | id | BIGINT | PK | ✅ |
 | host_id | BIGINT | FK (User) - Host | ✅ |
-| title | VARCHAR(100) | 주차 공간 제목 | ✅ |
-| address | VARCHAR(255) | 주소 | ✅ |
+| title | VARCHAR(100) | 주차 공간 제목 (주소 앞 50자 자동 생성) | ✅ |
+| address | VARCHAR(255) | 주소 (Kakao 우편번호 검색) | ✅ |
 | latitude | VARCHAR(20) | 위도 (Kakao API - NULL 허용) | ✅ |
 | longitude | VARCHAR(20) | 경도 (Kakao API - NULL 허용) | ✅ |
-| hourly_rate | INTEGER | 시간당 요금 (원, >0 필수) | ✅ |
+| hourly_rate | INTEGER | 시간당 요금 (스케줄 최솟값 자동 계산) | ✅ |
 | description | VARCHAR(500) | 상세 설명 (nullable) | ✅ |
 | is_available | BOOLEAN | 현재 예약 가능 여부 | ✅ |
+| available_schedule | JSON | 날짜별 운영 시간/요금 배열 | ✅ |
+| allowed_vehicle_types | JSON | 허용 차종 목록 (sedan/suv/van/truck/motorcycle) | ✅ |
+| images | JSON | 이미지 경로 배열 (/uploads/parking_spaces/{id}/...) | ✅ |
 | created_at | TIMESTAMP | 생성일 | ✅ |
 | updated_at | TIMESTAMP | 수정일 | ✅ |
 
-### 비즈니스 규칙
-- hourly_rate는 1원 이상 필수 (무료 주차 불가)
-- 진행중인 예약(confirmed/pending)이 있으면 삭제 불가
-- latitude/longitude는 현재 NULL (future: Kakao API 연동)
+### available_schedule 구조
+```json
+[
+  { "date": "2026-05-20", "start_time": "09:00", "end_time": "20:00", "hourly_rate": 2000 },
+  { "date": "2026-05-21", "start_time": "10:00", "end_time": "18:00", "hourly_rate": 1500 }
+]
+```
 
-### 미래 필드 (future-features.md 참조)
-- allowed_vehicle_types (JSON) - 허용 차종 목록
-- images (JSON) - 이미지 URL 배열
-- available_days (JSON) - 운영 요일
-- available_start_time (TIME) - 운영 시작 시간
-- available_end_time (TIME) - 운영 종료 시간
+### 비즈니스 규칙
+- hourly_rate는 스케줄이 있으면 스케줄 최솟값 자동 계산, 없으면 직접 입력
+- title은 직접 입력하지 않으면 address 앞 50자 자동 사용
+- 진행중인 예약(confirmed/pending)이 있으면 삭제 불가
+- allowed_vehicle_types 미설정 시 모든 차종 허용
+- images는 `POST /parking-spaces/{id}/images`로 별도 업로드
+- 이미지 저장 경로: `uploads/parking_spaces/{space_id}/{uuid}.jpg`
+- latitude/longitude는 현재 NULL (future: Kakao API 연동)
 
 ## Reservation (예약)
 - **예약자**: User (Guest)

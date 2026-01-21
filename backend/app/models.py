@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Boolean, Integer, TIMESTAMP, ForeignKey, Enum, func
+from sqlalchemy import Column, BigInteger, String, Boolean, Integer, TIMESTAMP, ForeignKey, Enum, func, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -58,6 +58,9 @@ class ParkingSpace(Base):
     hourly_rate = Column(Integer, nullable=False)
     description = Column(String(500), nullable=True)
     is_available = Column(Boolean, default=True, nullable=False)
+    available_schedule = Column(JSON, nullable=True)
+    allowed_vehicle_types = Column(JSON, nullable=True)  # ["sedan","suv","van","truck","motorcycle"]
+    images = Column(JSON, nullable=True)                 # ["/uploads/parking_spaces/{id}/file.jpg"]
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 

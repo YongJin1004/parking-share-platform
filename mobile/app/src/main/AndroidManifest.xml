@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- 위치 권한 (카카오맵 현재 위치용) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:name=".ParkingShareApplication"
         android:allowBackup="true"
@@ -15,6 +19,12 @@
         android:theme="@style/Theme.ParkingShare"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <!-- 카카오맵 앱 키 -->
+        <meta-data
+            android:name="com.kakao.vectormap.APP_KEY"
+            android:value="055d8c32720e988379b3b6da46d8aa47" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
