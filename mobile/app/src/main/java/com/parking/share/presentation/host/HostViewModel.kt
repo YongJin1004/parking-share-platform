@@ -51,17 +51,16 @@ class HostViewModel @Inject constructor(
 
     fun deleteParkingSpace(id: Int) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            // 낙관적 업데이트: 서버 응답 전에 즉시 목록에서 제거
+            _uiState.value = _uiState.value.copy(
+                parkingSpaces = _uiState.value.parkingSpaces.filter { it.id != id }
+            )
 
             parkingSpaceRepository.deleteParkingSpace(id)
-                .onSuccess {
-                    loadMyParkingSpaces()
-                }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "삭제에 실패했습니다."
-                    )
+                    // 실패 시 목록 다시 로드하여 복원
+                    loadMyParkingSpaces()
+                    _uiState.value = _uiState.value.copy(error = e.message ?: "삭제에 실패했습니다.")
                 }
         }
     }
