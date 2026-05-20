@@ -29,8 +29,10 @@ android {
         buildConfigField("String", "PORTONE_STORE_ID", "\"store-d25fbbf2-dc25-4cbb-8ab9-1254e72babb8\"")
         buildConfigField("String", "PORTONE_CHANNEL_KEY", "\"channel-key-b388d8f9-cfa1-47aa-b8a5-a9ed9fa6f45a\"")
 
-        // 카카오맵 설정
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"055d8c32720e988379b3b6da46d8aa47\"")
+        // 카카오맵 설정 (Kakao Developers 네이티브 앱 키로 교체)
+        val kakaoKey = "f86efd29ff1bcf56df29ad79f6c05334"
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoKey\"")
+        manifestPlaceholders["kakaoNativeAppKey"] = kakaoKey
     }
 
     buildTypes {

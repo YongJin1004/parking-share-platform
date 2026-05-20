@@ -37,14 +37,14 @@ fun HomeScreen(
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
     var mapError by remember { mutableStateOf<String?>(null) }
 
-    // 에뮬레이터 체크 (x86 에뮬레이터는 카카오맵 지원 안함)
+    // x86 에뮬레이터만 차단 (ARM 에뮬레이터는 카카오맵 지원)
     val isEmulator = remember {
-        Build.FINGERPRINT.contains("generic") ||
-        Build.FINGERPRINT.contains("emulator") ||
-        Build.MODEL.contains("Emulator") ||
-        Build.MODEL.contains("Android SDK built for x86") ||
-        Build.HARDWARE.contains("goldfish") ||
-        Build.HARDWARE.contains("ranchu")
+        val isX86 = Build.SUPPORTED_ABIS.none { it.startsWith("arm") }
+        val isVirtualDevice = Build.FINGERPRINT.contains("generic") ||
+            Build.FINGERPRINT.contains("emulator") ||
+            Build.HARDWARE.contains("goldfish") ||
+            Build.HARDWARE.contains("ranchu")
+        isVirtualDevice && isX86
     }
 
     Scaffold(

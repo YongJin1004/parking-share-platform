@@ -20,10 +20,10 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- 카카오맵 앱 키 -->
+        <!-- 카카오맵 앱 키 (Kakao Developers 네이티브 앱 키) -->
         <meta-data
             android:name="com.kakao.vectormap.APP_KEY"
-            android:value="055d8c32720e988379b3b6da46d8aa47" />
+            android:value="${kakaoNativeAppKey}" />
 
         <activity
             android:name=".MainActivity"
