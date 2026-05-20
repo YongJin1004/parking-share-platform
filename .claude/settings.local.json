@@ -20,7 +20,8 @@
       "Bash(claude mcp:*)",
       "Bash(Get-ChildItem \"c:\\\\Users\\\\hanyongjin\\\\Desktop\\\\parking-share-platform\\\\backend\" -Exclude \".venv\")",
       "Bash(Select-Object Name)",
-      "WebFetch(domain:postcode.map.kakao.com)"
+      "WebFetch(domain:postcode.map.kakao.com)",
+      "WebFetch(domain:apis.map.kakao.com)"
     ]
   },
   "allowedCommands": {
