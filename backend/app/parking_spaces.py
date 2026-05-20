@@ -1,14 +1,36 @@
 import os
 import shutil
 import uuid
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, Tuple
 
 from app.database import get_db
 from app.models import User, ParkingSpace, Reservation
 from app.schemas import ParkingSpaceCreate, ParkingSpaceUpdate, ParkingSpaceResponse, ParkingSpaceSearchRequest
 from app.dependencies import get_current_user
+
+KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY", "")
+
+
+def get_coordinates(address: str) -> Optional[Tuple[str, str]]:
+    """주소를 위도/경도로 변환 (Kakao Local API)"""
+    if not KAKAO_REST_API_KEY:
+        return None
+    try:
+        response = httpx.get(
+            "https://dapi.kakao.com/v2/local/search/address.json",
+            headers={"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"},
+            params={"query": address},
+            timeout=5.0
+        )
+        documents = response.json().get("documents", [])
+        if documents:
+            return documents[0]["y"], documents[0]["x"]  # (latitude, longitude)
+    except Exception:
+        pass
+    return None
 
 router = APIRouter(prefix="/api/v1/parking-spaces", tags=["parking-spaces"])
 
@@ -41,10 +63,16 @@ def create_parking_space(
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="hourly_rate 또는 운영 스케줄이 필요합니다.")
 
+    # 주소 → 위도/경도 변환
+    coords = get_coordinates(space_data.address)
+    latitude, longitude = (coords[0], coords[1]) if coords else (None, None)
+
     new_space = ParkingSpace(
         host_id=current_user.id,
         title=title,
         address=space_data.address,
+        latitude=latitude,
+        longitude=longitude,
         hourly_rate=hourly_rate,
         description=space_data.description,
         is_available=space_data.is_available,
